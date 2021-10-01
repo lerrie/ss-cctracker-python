@@ -54,7 +54,7 @@ img {
   background: url(../img/stock.jpg) no-repeat top center fixed/cover;
   position: relative;
   overflow: hidden;
-  min-height: 200px; }
+  min-height: 100px; }
   #showcase-inner::before {
     content: '';
     position: absolute;
