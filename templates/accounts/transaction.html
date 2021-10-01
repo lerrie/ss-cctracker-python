@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %} | Transaction {% endblock %}
+{% block content %}
+<section id="register" class="bg-light py-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 mx-auto">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h4>
+                <i class="fas fa-plus-circle"></i> Transaction</h4>
+            </div>
+            <div class="card-body">
+                <!-- Alerts -->
+                {% include 'partials/_alerts.html' %}
+                <form actions="{% url 'accttransaction' tran_id=tran_id %}" method="POST">
+                    {% csrf_token %}
+                    {% if user.is_authenticated %}
+                      <input type="hidden" name="userId" value="{{ user.id }}">
+                    {% else %}
+                    <input type="hidden" name="userId" value="1">
+                    {% endif %}
+                    <input type="hidden" name="id" value="{{ tran_id }}">
+                    <div class="form-group">
+                      <label for="name" class="col-form-label">Purchased Date:</label>
+                      <input type="datetime-local" name="purchasedDate" class="form-control" value="{{ tran.purchasedDate|date:'Y-m-d'}}T{{tran.purchasedDate|time:'H:i:s'}}" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="property_name" class="col-form-label">Coin:</label>
+                      <select name="coin" class="form-control">
+                        {% for coin in coins %}
+                            <option value="{{ coin.0 }}" {% if tran.coin == coin.0 %} selected {% endif %}>{{ coin.0 }}</option>
+                        {% endfor %}
+                    </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="name" class="col-form-label">Exchange:</label>
+                      <select name="exchange" class="form-control">
+                        {% for exchange in exchanges %}
+                            <option value="{{ exchange.0 }}" {% if tran.exchange == exchange.0 %} selected {% endif %}>{{ exchange.0 }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="email" class="col-form-label">Type:</label>
+                      <select name="transType" class="form-control">
+                        {% for key,value in type_choices.items %}
+                            <option value="{{ key }}" {% if tran.transType == key %} selected {% endif %}>{{ value }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="phone" class="col-form-label">Price:</label>
+                      <input type="text" name="priceAtBought" class="form-control" value="{{ tran.priceAtBought }}">
+                    </div>
+                    <div class="form-group">
+                      <label for="message" class="col-form-label">Qty:</label>
+                      <input type="text" name="qty" class="form-control" value="{{ tran.qty }}">
+                    </div>
+                    <div class="form-group">
+                      <label for="message" class="col-form-label">Fees:</label>
+                      <input type="text" name="fees" class="form-control" value="{{ tran.fees }}">
+                    </div>
+                    <div class="form-group">
+                      <label for="message" class="col-form-label">Notes:</label>
+                      <textarea name="notes" class="form-control">{{ tran.notes }}</textarea>
+                    </div>
+                    <hr>
+                    <div class="col-md-8">
+                        <button id="submit" name="submit" class="btn btn-primary">Save</button>
+                        <a href="{% url 'accttransactions' %}" id="cancel" name="cancel" class="btn btn-default">Cancel</a>
+                      </div>
+                  </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

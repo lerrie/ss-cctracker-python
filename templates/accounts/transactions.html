@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load tz %}
+{% load humanize %}
+
+{% block title %} | Transactions {% endblock %}
+
+{% block jscontent %}
+  <script>
+    function colSort(selOrderBy, valOrderBy, filterQryString) {
+      if (selOrderBy == valOrderBy)
+        window.location.href = '?orderBy=-' + valOrderBy + filterQryString
+      else
+        window.location.href = '?orderBy=' + valOrderBy + filterQryString
+    }
+  </script>
+{% endblock %}
+
+{% block content %}
+<section id="showcase-inner" class="py-5 text-white">
+    <div class="container">
+      <div class="row text-center">
+        <div class="col-md-12">
+          <h1 class="display-4">User Transactions</h1>
+          <p class="lead">Manage your cryptocurrency transactions</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Alerts -->
+  {% include 'partials/_alerts.html' %}
+
+  <section id="transactions" class="py-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+
+          <section id="showcase-search" class="py-4">
+            <div class="container">
+              <div class="row text-center">
+                <div class="col-md-12">
+                  <form action="{% url 'accttransactions' %}">
+                    <!-- Form Row 1 -->
+                    <div class="form-row">
+                      <label for="exchange" class="col-sm-1 col-form-label">Exchange</label>
+                      <div class="col-sm-3 mb-3">
+                        <input type="text" name="exchange" class="form-control form-control-sm" placeholder="Exchange (Binance, Gemini, etc."
+                          value="{{ values.exchange }}">
+                      </div>
+
+                      <label for="coins" class="col-sm-1 col-form-label">Coins</label>
+                      <div class="col-sm-3 mb-3">
+                        <input type="text" name="coin" class="form-control form-control-sm" placeholder="Coin (BTC, LTC, etc.)" 
+                          value="{{ values.coin }}">
+                      </div>
+
+                      <label for="transType" class="col-sm-1 col-form-label">Type</label>
+                      <div class="col-sm-3 mb-3">
+                        <select name="transType" class="form-control form-control-sm">
+                          <option value="ALL" selected>---ALL---</option>
+                          {% for key,value in type_choices.items %}
+                            <option value="{{ key }}" {% if values.transType == key %} selected {% endif %}>{{ value }}</option>
+                        {% endfor %}
+                        </select>
+                      </div>
+
+                    </div>
+                    <!-- Form Row 2 -->
+                    <div class="form-row">
+                      <label for="purchasedDateFrom" class="col-sm-2 col-form-label">Purchased Date</label>
+                      <div class="col-md-3 mb-3">
+                        <input type="date" name="purchasedDateFrom" class="form-control form-control-sm"
+                        value="{{ values.purchasedDateFrom }}" >
+                      </div>
+                      <label for="purchasedDateTo" class="col-sm-1 col-form-label">To</label>
+                      <div class="col-md-3 mb-3">
+                        <input type="date" name="purchasedDateTo" class="form-control form-control-sm"
+                          value="{{ values.purchasedDateTo }}" >
+                      </div>
+                      <div class="col-md-2 mb-3">
+                        <button class="btn btn-secondary btn-block" type="submit">Submit form</button>
+                      </div>
+                    </div>
+                    
+                  </form>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <span class="pt-2 float-left"><b>Total Results: </b> 
+            {% if filter_queryset_total < queryset_total %}
+              {{ filter_queryset_total }} (out of {{ queryset_total }}) 
+            {% else %}
+              {{ queryset_total }}
+            {% endif %}
+            </span>
+          <a class="nav-link float-right" href="{% url 'accttransaction' tran_id=0 %}">
+            <i class="fas fa-plus-circle"></i>  Add Transaction</a>
+          {% if trans %}
+            <table id="transTable" class="table tablesorter">
+              <thead>   
+                <tr>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'purchasedDate', '{{ filter_qrystring }}');">
+                  Purchased Date
+                    {% if values.orderBy == 'purchasedDate' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-purchasedDate' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'coin', '{{ filter_qrystring }}');">
+                  Coin
+                    {% if values.orderBy == 'coin' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-coin' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'exchange', '{{ filter_qrystring }}');">
+                  Exchange
+                    {% if values.orderBy == 'exchange' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-exchange' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'transType', '{{ filter_qrystring }}');">
+                  Type
+                    {% if values.orderBy == 'transType' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-transType' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'qty', '{{ filter_qrystring }}');">
+                  Qty
+                    {% if values.orderBy == 'qty' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-qty' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'priceAtBought', '{{ filter_qrystring }}');">
+                  Price
+                    {% if values.orderBy == 'priceAtBought' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-priceAtBought' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'fees', '{{ filter_qrystring }}');">
+                  Fees
+                    {% if values.orderBy == 'fees' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-fees' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th scope="col" 
+                  onclick="javascript:colSort('{{ values.orderBy }}', 'total', '{{ filter_qrystring }}');">
+                  Total Amount
+                    {% if values.orderBy == 'total' %} <i class="fa fa-fw fa-sort-up"></i>
+                    {% elif values.orderBy == '-total' %} <i class="fa fa-fw fa-sort-down"></i>
+                    {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
+                  </th>
+                  <th score="col">&nbsp;</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tran in trans %}
+                <tr>
+                  <td><a href="{% url 'accttransaction' tran_id=tran.id %}">{{ tran.purchasedDate }}</a></td>
+                  <td>{{ tran.coin }}</td>
+                  <td>{{ tran.exchange }}</td>
+                  <td>{{ tran.transType }}</td>
+                  <td align="right">{{ tran.qty|intcomma }}</td>
+                  <td align="right">$ {{ tran.priceAtBought|intcomma }}</td>
+                  <td align="right">$ {{ tran.fees|intcomma }}</td>
+                  <td align="right" style="font-weight: bold">$ {{ tran.total|intcomma }}</td>
+                  <td align="right">
+                    <a class="float-right" href="{% url 'accttransactiondelete' tran_id=tran.id %}">
+                      <i class="fas fa-times-circle red-text"></i></a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>You do not have any transaction.</p>
+          {% endif %}
+          <div class="row">
+            <div class="col-md-12">
+              {% if trans.has_other_pages %}
+                <ul class="pagination">
+                  {% if trans.has_previous %}
+                    <li class="page-item">
+                      <a href="?page=1&orderBy={{ values.orderBy }}{{ filter_qrystring }}" class="page-link">|&laquo;</a>
+                    </li>
+                  {% else %}
+                  <li class="page-item disabled">
+                    <a class="page-link">|&laquo;</a>
+                  </li>
+                  {% endif %}
+                  {% if trans.has_previous %}
+                    <li class="page-item">
+                      <a href="?page={{ trans.previous_page_number }}&orderBy={{ values.orderBy }}{{ filter_qrystring }}" class="page-link">&laquo;</a>
+                    </li>
+                  {% else %}
+                  <li class="page-item disabled">
+                    <a class="page-link">&laquo;</a>
+                  </li>
+                  {% endif %}
+                  {% for i in trans.paginator.page_range %}
+                    {% if trans.number == i %}
+                      <li class="page-item active">
+                        <a class="page-link">{{i}}</a>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a href="?page={{i}}&orderBy={{ values.orderBy }}{{ filter_qrystring }}" class="page-link">{{i}}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                  {% if trans.has_next %}
+                    <li class="page-item">
+                      <a href="?page={{ trans.next_page_number }}&orderBy={{ values.orderBy }}{{ filter_qrystring }}" class="page-link">&raquo;</a>
+                    </li>
+                  {% else %}
+                  <li class="page-item disabled">
+                    <a class="page-link">&raquo;</a>
+                  </li>
+                  {% endif %}
+                  {% if trans.has_next %}
+                    <li class="page-item">
+                      <a href="?page={{ trans.paginator.num_pages }}&orderBy={{ values.orderBy }}{{ filter_qrystring }}" class="page-link">&raquo;|</a>
+                    </li>
+                  {% else %}
+                  <li class="page-item disabled">
+                    <a class="page-link">&raquo;|</a>
+                  </li>
+                  {% endif %}
+                </ul>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endblock %}

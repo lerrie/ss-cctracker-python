@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <title>CryptoCurrency Tracker {% block title %}{% endblock %}</title>
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="{% static 'css/all.css' %}">
     <!-- Bootstrap -->
@@ -13,18 +16,21 @@
     <!-- Custom -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
-    <title>CryptoCurrency Tracker {% block title %}{% endblock %}</title>
+    <script src="{% static 'js/jquery-3.3.1.min.js' %} "></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %} "></script>
+  
+    <!-- JS Content -->
+    {% block jscontent %} {% endblock %}
 </head>
 <body>
     <!-- Navbar -->
     {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %} {% endblock %}
-    <!-- Footer -->
+    <!-- Footer --> 
     {% include 'partials/_footer.html' %}
-
-    <script src="{% static 'js/jquery-3.3.1.min.js' %} "></script>
-    <script src="{% static 'js/bootstrap.bundle.min.js' %} "></script>
+    
     <script src="{% static 'js/main.js' %}"></script>
+    
 </body>
 </html>

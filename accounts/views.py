@@ -1,6 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages, auth
 from django.contrib.auth.models import User
+from django.db.models import Sum, Q
+from django.utils import timezone
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from datetime import datetime, timedelta
+
+from transactions.models import Transaction
+from transactions.services import get_exchanges, get_coins
+from transactions.choices import type_choices
 
 def login(request):
     if request.method == 'POST':
@@ -63,4 +71,144 @@ def register(request):
         return render(request, 'accounts/register.html')
 
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html')
+    queryset_list = Transaction.objects.order_by('-purchasedDate').filter(userId=request.user.id)
+    #total_trans = sum([t.total() for t in user_trans])
+
+    paginator = Paginator(queryset_list, 5) #Shows 5 records per page
+    page = request.GET.get('page')
+    paged_trans = paginator.get_page(page)
+
+    context = {
+        'trans': paged_trans,
+        #'total_trans': total_trans
+    }
+
+    return render(request, 'accounts/dashboard.html', context)
+
+def accttransactions(request):
+
+    queryset_list = Transaction.objects.order_by('-purchasedDate').filter(userId=request.user.id)
+    queryset_total = queryset_list.count
+    filter_qrystring = ""
+    
+    # Search exchange name
+    if 'exchange' in request.GET:
+        exchange = request.GET['exchange']
+        filter_qrystring = filter_qrystring + "&exchange=" + exchange
+        if exchange:
+            queryset_list = queryset_list.filter(exchange__icontains=exchange)
+    
+    #Search coin symbol
+    if 'coin' in request.GET:
+        coin = request.GET['coin']
+        filter_qrystring = filter_qrystring + "&coin=" + coin
+        if coin:
+            queryset_list = queryset_list.filter(coin__icontains=coin)
+
+    #Search transaction type
+    if 'transType' in request.GET:
+        transType = request.GET['transType']
+        filter_qrystring = filter_qrystring + "&transType=" + transType
+        if transType and transType != "ALL":
+            queryset_list = queryset_list.filter(transType__iexact=transType)
+
+    #Search purchased date range
+    if 'purchasedDateFrom' in request.GET and 'purchasedDateTo' in request.GET:
+        purchasedDateFrom = request.GET['purchasedDateFrom']
+        purchasedDateTo = request.GET['purchasedDateTo']
+        filter_qrystring = filter_qrystring + "&purchasedDateFrom=" + purchasedDateFrom + "&purchasedDateTo=" + purchasedDateTo
+        print(purchasedDateFrom)
+        if purchasedDateFrom and purchasedDateTo and purchasedDateFrom == purchasedDateTo:
+            queryset_list = queryset_list.filter(purchasedDate__contains=purchasedDateFrom)
+        elif purchasedDateFrom and not purchasedDateTo:
+            queryset_list = queryset_list.filter(purchasedDate__gte=purchasedDateFrom)
+        elif not purchasedDateFrom and purchasedDateTo:
+            filterDateTo = datetime.strptime(purchasedDateTo, "%Y-%m-%d").date() + timedelta(1)
+            queryset_list = queryset_list.filter(purchasedDate__lte=filterDateTo)
+        elif purchasedDateFrom and purchasedDateTo:
+            queryset_list = queryset_list.filter(purchasedDate__range=(purchasedDateFrom, purchasedDateTo))
+
+    if 'orderBy' in request.GET:
+        orderBy = request.GET['orderBy']
+        if orderBy:
+            queryset_list = queryset_list.order_by(orderBy)
+
+    paginator = Paginator(queryset_list, 5) #Shows 5 records per page
+    page = request.GET.get('page')
+    paged_trans = paginator.get_page(page)
+
+    context = {
+        'trans': paged_trans,
+        'type_choices': type_choices,
+        'values' : request.GET,
+        'filter_qrystring': filter_qrystring,
+        'queryset_total': queryset_total,
+        'filter_queryset_total': queryset_list.count
+    }
+
+    return render(request, 'accounts/transactions.html', context)
+
+def accttransaction(request, tran_id):
+    #save transaction
+    if request.method == "POST":
+
+        userId = request.POST['userId']
+        purchasedDate = request.POST['purchasedDate']
+        coin = request.POST['coin']
+        exchange = request.POST['exchange']
+        transType = request.POST['transType']
+        priceAtBought = request.POST['priceAtBought']
+        qty = request.POST['qty']
+        fees = request.POST['fees']
+        notes = request.POST['notes']
+        selTranId = int(request.POST['id'])
+
+        if selTranId > 0:
+            tran = get_object_or_404(Transaction, pk=selTranId)
+            tran.purchasedDate = purchasedDate
+            tran.coin = coin
+            tran.exchange = exchange
+            tran.transType = transType
+            tran.priceAtBought = priceAtBought
+            tran.qty = qty
+            tran.fees = fees
+            tran.notes = notes
+        
+        else:
+            tran = Transaction(exchange=exchange, coin=coin, transType=transType, priceAtBought=priceAtBought, 
+                purchasedDate=purchasedDate, qty=qty, fees=fees, notes=notes, userId=userId)
+
+        tran.save()
+        messages.success(request, 'Transaction saved successfully.')
+        return redirect('accttransactions')
+
+    else:
+
+        if tran_id > 0:
+            tran = get_object_or_404(Transaction, pk=tran_id)
+        else:
+            tran = Transaction()
+            tran.purchasedDate = timezone.now()
+
+        context = {
+            'exchanges': get_exchanges(),
+            'coins': get_coins(),
+            'type_choices': type_choices,
+            'tran': tran,
+            'tran_id': tran_id
+        }
+        
+        return render(request, 'accounts/transaction.html', context)
+
+def accttransactiondelete(request, tran_id):
+
+    #delete transaction
+    if tran_id and int(tran_id) > 0:
+        tran = get_object_or_404(Transaction, pk=int(tran_id))
+        tran.delete()
+
+        messages.success(request, "Transaction deleted successfully.")
+    else:
+        messages.error(request, "There is an error deleting a transaction.")
+    
+    return redirect('accttransactions')
