@@ -71,7 +71,10 @@ def register(request):
         return render(request, 'accounts/register.html')
 
 def dashboard(request):
-    queryset_list = Transaction.objects.order_by('-purchasedDate').filter(userId=request.user.id)
+    queryset_list = Transaction.objects.order_by('purchasedDate').filter(userId=request.user.id)
+    
+    updateSoldQty(request)
+
     #total_trans = sum([t.total() for t in user_trans])
 
     paginator = Paginator(queryset_list, 5) #Shows 5 records per page
@@ -179,6 +182,10 @@ def accttransaction(request, tran_id):
                 purchasedDate=purchasedDate, qty=qty, fees=fees, notes=notes, userId=userId)
 
         tran.save()
+
+        # update soldqty
+
+
         messages.success(request, 'Transaction saved successfully.')
         return redirect('accttransactions')
 
@@ -212,3 +219,51 @@ def accttransactiondelete(request, tran_id):
         messages.error(request, "There is an error deleting a transaction.")
     
     return redirect('accttransactions')
+
+
+def updateSoldQty(request):
+    queryset_list = Transaction.objects.order_by('coin','purchasedDate').filter(userId=request.user.id)
+    queryset_bought = queryset_list.filter(transType__iexact="BUY")
+    queryset_sold = queryset_list.filter(transType__iexact="SELL").values('coin').order_by('coin').annotate(total_soldQty=Sum('qty'))
+
+    trans_list = []
+
+    # Reset soldqty field on all buy transactions
+    Transaction.objects.filter(transType="BUY").update(soldQty=0)
+
+    for s in queryset_sold:
+        sold_qty = s['total_soldQty']
+        if sold_qty > 0:
+            queryset_bought_by_coin = queryset_bought.filter(coin__iexact=s['coin']).order_by('purchasedDate')
+            for b in queryset_bought_by_coin:
+                print('coin')
+                print(s['coin'])
+                print('sold_qty')
+                print(sold_qty)
+                print('b.qty')
+                print(b.qty)
+                print('b.id')
+                print(b.id)
+                bought_tran = get_object_or_404(Transaction, pk=b.id)
+
+                if sold_qty > b.qty:
+                    bought_tran.soldQty = b.qty
+                    bought_tran.save()
+                    print('sold - if')
+                    print(b.qty)
+                    sold_qty = sold_qty - b.qty
+                elif sold_qty > 0:
+                    bought_tran.soldQty = sold_qty
+                    bought_tran.save()
+                    print('sold - else')
+                    print(sold_qty)
+                    sold_qty = 0
+                    
+                    
+
+    print('bought:')
+    print(queryset_bought)
+    print('sold:')
+    print(queryset_sold)
+
+    return 1;

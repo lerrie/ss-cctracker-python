@@ -8,7 +8,7 @@
       <div class="row text-center">
         <div class="col-md-12">
           <h1 class="display-4">User Dashboard</h1>
-          <p class="lead">Manage your BT Real Estate account</p>
+          <p class="lead">Your cryptocurrency portfolio</p>
         </div>
       </div>
     </div>
@@ -22,7 +22,6 @@
       <div class="row">
         <div class="col-md-12">
           <h2>Welcome, {{ user.first_name }}!</h2>
-          <p>Portfolio</p>
           
           {% if trans %}
           <table class="table">
@@ -30,11 +29,11 @@
               <tr>
                 <th scope="col">Coin</th>
                 <th scope="col">Exchange</th>
-                <th scope="col">Last Price</th>
                 <th scope="col">Qty</th>
+                <th scope="col">Last Price</th>
                 <th scope="col">Cost</th>
                 <th scope="col">Value</th>
-                <th scope="col">Gain/Loss</th>
+                <th scope="col">Unrealized <br/>Gain/Loss</th>
               </tr>
             </thead>
             <tbody>
@@ -42,11 +41,11 @@
               <tr>
                 <td>{{ tran.coin }}</td>
                 <td>{{ tran.exchange }}</td>
-                <td align="right">{{ tran.transType }}</td>
-                <td align="right">$ {{ tran.qty|intcomma }}</td>
-                <td align="right">$ {{ tran.priceAtBought|intcomma }}</td>
-                <td align="right">$ {{ tran.fees|intcomma }}</td>
-                <td align="right" style="font-weight: bold">$ {{ tran.total|intcomma }}</td>
+                <td align="right">{{ tran.soldQty|intcomma }}</td>
+                <td align="right">$ 0.00</td>
+                <td align="right">$ 0.00</td>
+                <td align="right">$ 0.00</td>
+                <td align="right" style="font-weight: bold">$ 0.00</td>
               </tr>
               {% endfor %}
             </tbody>

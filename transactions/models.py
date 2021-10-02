@@ -14,8 +14,11 @@ class Transaction(models.Model):
     fees = models.DecimalField(decimal_places=2, max_digits=18, verbose_name="Fees", default=0.00)
     notes = models.TextField(blank=True, verbose_name="Notes")
     userId = models.IntegerField(default=1) #default 1=admin
+    soldQty = models.DecimalField(decimal_places=4, max_digits=18, default=0.0000)
+
     def __str__(self):
         return self.coin + ' (' + self.exchange + ')'
+
     def total(self):
         total_amt = round((self.priceAtBought * self.qty) + self.fees, 2) 
         return total_amt
