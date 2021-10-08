@@ -48,3 +48,23 @@ def get_coins():
         print(e)
 
     return coins
+
+def get_coin_latest_price(coin_symbol):
+    price = 0
+    quote_url = os.getenv('BASE_URL') + '/v1/cryptocurrency/quotes/latest?convert=' + os.getenv('LOCAL_CURRENCY') + '&symbol=' + coin_symbol
+    HEADER = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': os.getenv('CC_ACCESS_TOKEN')
+    }
+    try:
+        request = requests.get(quote_url, headers=HEADER)
+        results = request.json()
+
+        currency = results['data'][coin_symbol]
+        quote = currency['quote'][os.getenv('LOCAL_CURRENCY')]
+        price = float(quote['price'])
+        
+    except (ConnectionError, Timeout, TooManyRedirects) as e:
+        print(e)
+
+    return price

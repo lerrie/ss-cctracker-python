@@ -1,13 +1,15 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages, auth
 from django.contrib.auth.models import User
-from django.db.models import Sum, Q
+from django.db import models
+from django.db.models import Sum, Q, F
 from django.utils import timezone
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from datetime import datetime, timedelta
 
 from transactions.models import Transaction
-from transactions.services import get_exchanges, get_coins
+from transactions.services import get_exchanges, get_coins, get_coin_latest_price
 from transactions.choices import type_choices
 
 def login(request):
@@ -71,19 +73,48 @@ def register(request):
         return render(request, 'accounts/register.html')
 
 def dashboard(request):
-    queryset_list = Transaction.objects.order_by('purchasedDate').filter(userId=request.user.id)
+    queryset_list = Transaction.objects.order_by('purchasedDate').filter(Q(userId=request.user.id) & Q(transType="BUY"))
+    queryset_list = queryset_list.annotate(totalBought=F('qty') - F('soldQty'))
+    queryset_list = queryset_list.filter(totalBought__gt=0)
+          
+    # Get the latest price per coin
+    coin_list = queryset_list.order_by('coin').values('coin').distinct()
     
-    updateSoldQty(request)
+    trans_latestprice_list = []
+    grandtotal_cost = 0
+    grandtotal_value = 0
+    grandtotal_gainloss = 0
 
-    #total_trans = sum([t.total() for t in user_trans])
+    for c in coin_list:
+        #get coin latest price
+        coin_price = get_coin_latest_price(c['coin'])
+        
+        total_qty = 0
+        total_cost = 0
+        total_value = 0
+        total_gainloss = 0
 
-    paginator = Paginator(queryset_list, 5) #Shows 5 records per page
+        for cl in queryset_list:
+            if c['coin'] == cl.coin:
+                total_qty = total_qty + float(cl.totalBought)
+                total_cost = total_cost + (float(cl.priceAtBought) * float(cl.totalBought)) + float(cl.fees)
+                total_value = total_value + float(coin_price) * float(cl.totalBought)
+                total_gainloss = total_gainloss + (total_value - total_cost)
+        
+        grandtotal_cost = grandtotal_cost + total_cost
+        grandtotal_value = grandtotal_value + total_value
+        grandtotal_gainloss = grandtotal_gainloss + total_gainloss
+        trans_latestprice_list.append(( c['coin'], total_qty, coin_price, total_cost, total_value, total_gainloss ))
+
+    paginator = Paginator(trans_latestprice_list, 5) #Shows 5 records per page
     page = request.GET.get('page')
     paged_trans = paginator.get_page(page)
 
     context = {
         'trans': paged_trans,
-        #'total_trans': total_trans
+        'grandtotal_cost': grandtotal_cost,
+        'grandtotal_value': grandtotal_value,
+        'grandtotal_gainloss': grandtotal_gainloss
     }
 
     return render(request, 'accounts/dashboard.html', context)
@@ -180,14 +211,25 @@ def accttransaction(request, tran_id):
         else:
             tran = Transaction(exchange=exchange, coin=coin, transType=transType, priceAtBought=priceAtBought, 
                 purchasedDate=purchasedDate, qty=qty, fees=fees, notes=notes, userId=userId)
+        
+        isValid = 1
+        if transType == "SELL":
+            # check is sell is possible
+            isValid = checkCoinExchangeToSell(request)
 
-        tran.save()
+        if isValid == 1:
+            tran.save()
 
-        # update soldqty
+            if transType == "SELL":
+                # Update sold qty
+                updateSoldQty(request)
 
+            messages.success(request, 'Transaction saved successfully.')
+            return redirect('accttransactions')
 
-        messages.success(request, 'Transaction saved successfully.')
-        return redirect('accttransactions')
+        else:
+            messages.error(request, 'Error selling a coin.')
+            return redirect('accttransactions')
 
     else:
 
@@ -212,58 +254,78 @@ def accttransactiondelete(request, tran_id):
     #delete transaction
     if tran_id and int(tran_id) > 0:
         tran = get_object_or_404(Transaction, pk=int(tran_id))
-        tran.delete()
+        isValid = checkCoinExchangeToDelete(request.user.id, tran)
 
-        messages.success(request, "Transaction deleted successfully.")
+        if isValid == 1:
+            tran.delete()
+
+            # Update sold qty
+            updateSoldQty(request)
+
+            messages.success(request, "Transaction deleted successfully.")
+
+        else:
+            messages.error(request, 'Error deleting a coin.')
+            return redirect('accttransactions')
     else:
         messages.error(request, "There is an error deleting a transaction.")
     
     return redirect('accttransactions')
 
+def checkCoinExchangeToSell(request):
+
+    coin = request.POST['coin']
+    exchange = request.POST['exchange']
+
+    queryset_list = Transaction.objects.filter(Q(userId=request.user.id) & Q(transType__iexact="BUY") & Q(coin__iexact=coin) & Q(exchange__iexact=exchange))
+    queryset_list = queryset_list.annotate(totalBought=F('qty') - F('soldQty'))
+    queryset_list = queryset_list.filter(totalBought__gte=0)
+    
+    if len(queryset_list) > 0:
+        return 1
+    else:
+        return 0;
+
+def checkCoinExchangeToDelete(user_id, tran):
+
+    if tran.transType == "BUY":
+        coin = tran.coin
+        exchange = tran.exchange
+
+        queryset_list = Transaction.objects.filter(Q(userId=user_id) & Q(transType__iexact="BUY") & Q(coin__iexact=coin) & Q(exchange__iexact=exchange))
+        queryset_list = queryset_list.annotate(total=F('qty') - F('soldQty') - tran.qty)
+        queryset_list = queryset_list.filter(total__gte=0)
+          
+        if len(queryset_list) > 0:
+            return 1
+        else:
+            return 0
+    else:
+        return 1
 
 def updateSoldQty(request):
-    queryset_list = Transaction.objects.order_by('coin','purchasedDate').filter(userId=request.user.id)
+    queryset_list = Transaction.objects.order_by('coin','exchange','purchasedDate').filter(userId=request.user.id)
     queryset_bought = queryset_list.filter(transType__iexact="BUY")
-    queryset_sold = queryset_list.filter(transType__iexact="SELL").values('coin').order_by('coin').annotate(total_soldQty=Sum('qty'))
-
-    trans_list = []
-
+    queryset_sold = queryset_list.filter(transType__iexact="SELL").values('coin','exchange').order_by('exchange','coin').annotate(total_soldQty=Sum('qty'))
+  
     # Reset soldqty field on all buy transactions
-    Transaction.objects.filter(transType="BUY").update(soldQty=0)
+    Transaction.objects.filter(Q(transType="BUY") & Q(userId=request.user.id)).update(soldQty=0)
 
+    # Update bought coin's qty with sold qty
     for s in queryset_sold:
         sold_qty = s['total_soldQty']
+                
         if sold_qty > 0:
-            queryset_bought_by_coin = queryset_bought.filter(coin__iexact=s['coin']).order_by('purchasedDate')
+            queryset_bought_by_coin = queryset_bought.filter(Q(coin__iexact=s['coin']) & Q(exchange__iexact=s['exchange'])).order_by('coin','exchange','purchasedDate')
             for b in queryset_bought_by_coin:
-                print('coin')
-                print(s['coin'])
-                print('sold_qty')
-                print(sold_qty)
-                print('b.qty')
-                print(b.qty)
-                print('b.id')
-                print(b.id)
                 bought_tran = get_object_or_404(Transaction, pk=b.id)
-
                 if sold_qty > b.qty:
                     bought_tran.soldQty = b.qty
                     bought_tran.save()
-                    print('sold - if')
-                    print(b.qty)
                     sold_qty = sold_qty - b.qty
                 elif sold_qty > 0:
                     bought_tran.soldQty = sold_qty
                     bought_tran.save()
-                    print('sold - else')
-                    print(sold_qty)
                     sold_qty = 0
                     
-                    
-
-    print('bought:')
-    print(queryset_bought)
-    print('sold:')
-    print(queryset_sold)
-
-    return 1;
+    return 1

@@ -27,31 +27,35 @@
           <table class="table">
             <thead>   
               <tr>
-                <th scope="col">Coin</th>
-                <th scope="col">Exchange</th>
-                <th scope="col">Qty</th>
-                <th scope="col">Last Price</th>
-                <th scope="col">Cost</th>
-                <th scope="col">Value</th>
-                <th scope="col">Unrealized <br/>Gain/Loss</th>
+                <th>Coin</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Latest Price (USD)</th>
+                <th class="text-right">Cost (USD)</th>
+                <th class="text-right">Value (USD)</th>
+                <th class="text-right">Unrealized <br/>Gain/Loss (USD)</th>
               </tr>
             </thead>
             <tbody>
               {% for tran in trans %}
               <tr>
-                <td>{{ tran.coin }}</td>
-                <td>{{ tran.exchange }}</td>
-                <td align="right">{{ tran.soldQty|intcomma }}</td>
-                <td align="right">$ 0.00</td>
-                <td align="right">$ 0.00</td>
-                <td align="right">$ 0.00</td>
-                <td align="right" style="font-weight: bold">$ 0.00</td>
+                <td>{{ tran.0 }}</td>
+                <td align="right">{{ tran.1|stringformat:".2f"|intcomma }}</td>
+                <td align="right">{{ tran.2|stringformat:".2f"|intcomma }}</td>
+                <td align="right">{{ tran.3|stringformat:".2f"|intcomma }}</td>
+                <td align="right"><span class="transAmount">{{ tran.4|stringformat:".2f"|intcomma }}</span></td>
+                <td align="right" style="font-weight: bold"><span class="transAmount">{{ tran.5|stringformat:".2f"|intcomma }}</span></td>
               </tr>
               {% endfor %}
+              <tr>
+                <td align="right" colspan="3"><b>GRAND TOTAL:</b></td>
+                <td align="right"><span class="transAmount"><b>{{ grandtotal_cost|stringformat:".2f"|intcomma }}</b></span></td>
+                <td align="right"><span class="transAmount"><b>{{ grandtotal_value|stringformat:".2f"|intcomma }}</b></span></td>
+                <td align="right" style="font-weight: bold"><b><span class="transAmount">{{ grandtotal_gainloss|stringformat:".2f"|intcomma }}</b></span></td>
+              </tr>
             </tbody>
           </table>
         {% else %}
-          <p>You do not have any transaction.</p>
+          <p>You do not have any coins on your portfolio.</p>
         {% endif %}
         <div class="row">
           <div class="col-md-12">
@@ -112,4 +116,19 @@
       </div>
     </div>
   </section>
+
+  <script>
+    var els = document.getElementsByClassName('transAmount');
+    for (var i = 0; i < els.length; i++) {
+      var cell = els[i];
+      console.log(cell.textContent.replace(',',''))
+      if (parseFloat(cell.textContent.replace(',','')) < 0) {
+        cell.classList.remove('green-font')
+        cell.classList.add('red-font')
+      } else {
+        cell.classList.remove('red-font');
+        cell.classList.add('green-font');
+      }
+    }
+  </script>
   {% endblock %}

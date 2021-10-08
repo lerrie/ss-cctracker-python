@@ -15,7 +15,7 @@ class Transaction(models.Model):
     notes = models.TextField(blank=True, verbose_name="Notes")
     userId = models.IntegerField(default=1) #default 1=admin
     soldQty = models.DecimalField(decimal_places=4, max_digits=18, default=0.0000)
-
+    latestPrice = models.DecimalField(decimal_places=2, max_digits=18, verbose_name='Latest Price', default=0.00)
     def __str__(self):
         return self.coin + ' (' + self.exchange + ')'
 

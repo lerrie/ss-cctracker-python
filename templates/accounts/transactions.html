@@ -129,28 +129,28 @@
                     {% elif values.orderBy == '-transType' %} <i class="fa fa-fw fa-sort-down"></i>
                     {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
                   </th>
-                  <th scope="col" 
+                  <th class="text-right"
                   onclick="javascript:colSort('{{ values.orderBy }}', 'qty', '{{ filter_qrystring }}');">
                   Qty
                     {% if values.orderBy == 'qty' %} <i class="fa fa-fw fa-sort-up"></i>
                     {% elif values.orderBy == '-qty' %} <i class="fa fa-fw fa-sort-down"></i>
                     {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
                   </th>
-                  <th scope="col" 
+                  <th class="text-right"
                   onclick="javascript:colSort('{{ values.orderBy }}', 'priceAtBought', '{{ filter_qrystring }}');">
                   Price
                     {% if values.orderBy == 'priceAtBought' %} <i class="fa fa-fw fa-sort-up"></i>
                     {% elif values.orderBy == '-priceAtBought' %} <i class="fa fa-fw fa-sort-down"></i>
                     {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
                   </th>
-                  <th scope="col" 
+                  <th class="text-right" 
                   onclick="javascript:colSort('{{ values.orderBy }}', 'fees', '{{ filter_qrystring }}');">
                   Fees
                     {% if values.orderBy == 'fees' %} <i class="fa fa-fw fa-sort-up"></i>
                     {% elif values.orderBy == '-fees' %} <i class="fa fa-fw fa-sort-down"></i>
                     {% else %} <i class="fa fa-fw fa-sort"></i> {% endif %}
                   </th>
-                  <th scope="col" 
+                  <th  class="text-right"
                   onclick="javascript:colSort('{{ values.orderBy }}', 'total', '{{ filter_qrystring }}');">
                   Total Amount
                     {% if values.orderBy == 'total' %} <i class="fa fa-fw fa-sort-up"></i>
@@ -167,10 +167,10 @@
                   <td>{{ tran.coin }}</td>
                   <td>{{ tran.exchange }}</td>
                   <td>{{ tran.transType }}</td>
-                  <td align="right">{{ tran.qty|intcomma }}</td>
-                  <td align="right">$ {{ tran.priceAtBought|intcomma }}</td>
-                  <td align="right">$ {{ tran.fees|intcomma }}</td>
-                  <td align="right" style="font-weight: bold">$ {{ tran.total|intcomma }}</td>
+                  <td align="right">{{ tran.qty|stringformat:".2f"|intcomma }}</td>
+                  <td align="right">$ {{ tran.priceAtBought|stringformat:".2f"|intcomma }}</td>
+                  <td align="right">$ {{ tran.fees|stringformat:".2f"|intcomma }}</td>
+                  <td align="right" style="font-weight: bold">$ {{ tran.total|stringformat:".2f"|intcomma }}</td>
                   <td align="right">
                     <a class="float-right" href="{% url 'accttransactiondelete' tran_id=tran.id %}">
                       <i class="fas fa-times-circle red-text"></i></a>

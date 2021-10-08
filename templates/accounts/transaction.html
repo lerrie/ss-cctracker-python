@@ -52,15 +52,19 @@
                     </div>
                     <div class="form-group">
                       <label for="phone" class="col-form-label">Price:</label>
-                      <input type="text" name="priceAtBought" class="form-control" value="{{ tran.priceAtBought }}">
+                      <input type="text" name="priceAtBought" id='priceAtBought' class="form-control" value="{{ tran.priceAtBought }}" onchange="getTotalAmount()">
                     </div>
                     <div class="form-group">
                       <label for="message" class="col-form-label">Qty:</label>
-                      <input type="text" name="qty" class="form-control" value="{{ tran.qty }}">
+                      <input type="text" name="qty" id='qty' class="form-control" value="{{ tran.qty }}" onchange="getTotalAmount()">
                     </div>
                     <div class="form-group">
                       <label for="message" class="col-form-label">Fees:</label>
-                      <input type="text" name="fees" class="form-control" value="{{ tran.fees }}">
+                      <input type="text" name="fees" id='fees' class="form-control" value="{{ tran.fees }}" onchange="getTotalAmount()">
+                    </div>
+                    <div class="form-group">
+                      <label for="message" class="col-form-label">Total Amount:</label>
+                      <input type="text" name="totalAmt" id="totalAmt" class="form-control" readonly>
                     </div>
                     <div class="form-group">
                       <label for="message" class="col-form-label">Notes:</label>
@@ -78,4 +82,18 @@
       </div>
     </div>
   </section>
+
+  <script>
+    getTotalAmount();
+    
+    function getTotalAmount()
+    {
+      price = parseFloat(document.getElementById('priceAtBought').value);
+      qty = parseFloat(document.getElementById('qty').value);
+      fees = parseFloat(document.getElementById('fees').value);
+
+      totalAmt = (price * qty) + fees;
+      document.getElementById('totalAmt').value = totalAmt.toFixed(2);
+    }
+  </script>
 {% endblock %}
