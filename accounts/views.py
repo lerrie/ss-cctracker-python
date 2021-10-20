@@ -256,6 +256,8 @@ def accttransactiondelete(request, tran_id):
     #delete transaction
     if tran_id and int(tran_id) > 0:
         tran = get_object_or_404(Transaction, pk=int(tran_id))
+
+        #check is delete is allowed
         isValid = checkCoinExchangeToDelete(request.user.id, tran)
 
         if isValid == 1:
@@ -279,6 +281,7 @@ def checkCoinExchangeToSell(request):
     coin = request.POST['coin']
     exchange = request.POST['exchange']
 
+    # making sure user has enough coin qty to sell
     queryset_list = Transaction.objects.filter(Q(userId=request.user.id) & Q(transType__iexact="BUY") & Q(coin__iexact=coin) & Q(exchange__iexact=exchange))
     queryset_list = queryset_list.annotate(totalBought=F('qty') - F('soldQty'))
     queryset_list = queryset_list.filter(totalBought__gte=0)
@@ -293,7 +296,9 @@ def checkCoinExchangeToDelete(user_id, tran):
     if tran.transType == "BUY":
         coin = tran.coin
         exchange = tran.exchange
-
+        
+        # check if delete is possible on 'buy' transaction
+        # making sure that one user is deleting has not been sold
         queryset_list = Transaction.objects.filter(Q(userId=user_id) & Q(transType__iexact="BUY") & Q(coin__iexact=coin) & Q(exchange__iexact=exchange))
         queryset_list = queryset_list.annotate(total=F('qty') - F('soldQty') - tran.qty)
         queryset_list = queryset_list.filter(total__gte=0)
