@@ -33,7 +33,7 @@ def login(request):
 def logout(request):
     if request.method == 'POST':
         auth.logout(request)
-        messages.success(request, "You are not logged out.")
+        messages.success(request, "You successfully logged out.")
         return redirect('index')
     
 def register(request):
