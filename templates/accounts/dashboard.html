@@ -118,6 +118,10 @@
   </section>
 
   <script>
+    // 09/20/2021 LG
+    // Code copied from Flame Denise Fiddle, https://jsfiddle.net/flamedenise/gz12k3qf/ 
+    // 03/11/17 ITWitch stackoverflow answer: https://stackoverflow.com/questions/42733788/django-change-text-color-based-on-value-html-js/42734211
+    //start
     var els = document.getElementsByClassName('transAmount');
     for (var i = 0; i < els.length; i++) {
       var cell = els[i];
@@ -130,5 +134,6 @@
         cell.classList.add('green-font');
       }
     }
+    //end
   </script>
   {% endblock %}

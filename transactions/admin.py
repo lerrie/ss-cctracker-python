@@ -1,5 +1,7 @@
 from django import forms
 from django.contrib import admin
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 
 from .models import Transaction
 from .services import get_exchanges, get_coins
@@ -16,11 +18,11 @@ class TransactionForm(forms.ModelForm):
 class TransactionAdmin(admin.ModelAdmin):
     form = TransactionForm
     
-    list_display = ('coin', 'exchange', 'purchasedDate', 'Price_USD', 'qty', 'Fees_USD')
+    list_display = ('id', 'coin', 'exchange', 'purchasedDate', 'Price_USD', 'qty', 'Fees_USD', 'UserId_Username')
     list_filter = ('purchasedDate',)
     fields = ('coin', 'exchange', 'purchasedDate', 'priceAtBought', 'qty', 'fees', 'notes')
-    search_fields = ('coin', 'exchange')
-    ordering = ('-purchasedDate',)
+    search_fields = ('coin', 'exchange','userId')
+    ordering = ('-purchasedDate',) 
     list_per_page = 25
     
     def formfield_for_dbfield(self, db_field, **kwargs):
@@ -35,5 +37,9 @@ class TransactionAdmin(admin.ModelAdmin):
 
     def Fees_USD(self, db_field):
         return '$ {:,}'.format(round(db_field.fees,2))
+
+    def UserId_Username(self, db_field):
+        user = get_object_or_404(User, pk=db_field.userId)
+        return str(db_field.userId) + ' - ' + user.username
     
 admin.site.register(Transaction, TransactionAdmin)

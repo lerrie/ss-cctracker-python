@@ -2,7 +2,7 @@ from django.db import models
 from datetime import datetime
 from django.utils import timezone
 from brokers.models import Broker
-from .choices import type_choices
+from .choices import type_choices 
 
 class Transaction(models.Model):
     exchange = models.CharField(max_length=50,null=True)

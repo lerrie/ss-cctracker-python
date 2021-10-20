@@ -7,6 +7,7 @@ from django.db.models import Sum, Q, F
 from django.utils import timezone
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from datetime import datetime, timedelta
+from django.contrib.auth.hashers import make_password
 
 from transactions.models import Transaction
 from transactions.services import get_exchanges, get_coins, get_coin_latest_price
@@ -57,7 +58,8 @@ def register(request):
                     messages.error(request, 'That email is already been used.')
                     return redirect('register')
                 else:
-                    user = User.objects.create(username=username, password=password, email=email, first_name=first_name, last_name=last_name)
+                    enc_password = make_password(password)
+                    user = User.objects.create(username=username, password=enc_password, email=email, first_name=first_name, last_name=last_name)
                     user.save()
                     messages.success(request, 'You are now registered and ready to log in.') 
                     return redirect('login')
